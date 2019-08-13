@@ -35,7 +35,7 @@ class DedupeIntegration(Integration):
             if integration is None:
                 return event
 
-            pid, exc_info = hint.get("exc_info", None)
+            pid, exc_info = hint.get("exc_info", (None, None))
             if exc_info is None:
                 return event
 
