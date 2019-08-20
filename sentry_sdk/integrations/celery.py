@@ -17,6 +17,7 @@ from sentry_sdk._compat import reraise
 from sentry_sdk.integrations import Integration
 from sentry_sdk.integrations.logging import ignore_logger
 from sentry_sdk._types import MYPY
+from sentry_sdk._compat import PY2
 
 if MYPY:
     from typing import Any
@@ -65,8 +66,17 @@ class CeleryIntegration(Integration):
         ignore_logger("celery.app.trace")
 
 
+def wraps(f):
+    w = functools.partial(functools.update_wrapper, f)
+    if PY2:
+        # Back port __wrapped_ attribute to Python 2. Present from Python >3.2
+        # https://docs.python.org/3/library/functools.html#functools.update_wrapper
+        w.__wrapped__ = f
+    return w
+
+
 def _wrap_apply_async(task, f):
-    @functools.wraps(f)
+    @wraps(f)
     def apply_async(*args, **kwargs):
         hub = Hub.current
         integration = hub.get_integration(CeleryIntegration)
@@ -94,7 +104,7 @@ def _wrap_tracer(task, f):
     # This is the reason we don't use signals for hooking in the first place.
     # Also because in Celery 3, signal dispatch returns early if one handler
     # crashes.
-    @functools.wraps(f)
+    @wraps(f)
     def _inner(*args, **kwargs):
         hub = Hub.current
         if hub.get_integration(CeleryIntegration) is None:
@@ -127,7 +137,7 @@ def _wrap_task_call(task, f):
     # functools.wraps is important here because celery-once looks at this
     # method's name.
     # https://github.com/getsentry/sentry-python/issues/421
-    @functools.wraps(f)
+    @wraps(f)
     def _inner(*args, **kwargs):
         try:
             return f(*args, **kwargs)
