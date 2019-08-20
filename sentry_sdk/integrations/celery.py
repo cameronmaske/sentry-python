@@ -66,30 +66,13 @@ class CeleryIntegration(Integration):
         ignore_logger("celery.app.trace")
 
 
-def update_wrapper(wrapper,
-                   wrapped,
-                   assigned = functools.WRAPPER_ASSIGNMENTS,
-                   updated = functools.WRAPPER_UPDATES):
-    for attr in assigned:
-        try:
-            value = getattr(wrapped, attr)
-        except AttributeError:
-            pass
-        else:
-            setattr(wrapper, attr, value)
-    for attr in updated:
-        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
-    wrapper.__wrapped__ = wrapped
-    return wrapper
-
 def wraps(f):
-    w = functools.partial(update_wrapper, f)
+    w = functools.wraps(f)
     if PY2:
         # Back port __wrapped_ attribute to Python 2. Present from Python >3.2
         # https://docs.python.org/3/library/functools.html#functools.update_wrapper
         w.__wrapped__ = f
     return w
-
 
 def _wrap_apply_async(task, f):
     @wraps(f)
@@ -109,7 +92,6 @@ def _wrap_apply_async(task, f):
                 return f(*args, **kwargs)
         else:
             return f(*args, **kwargs)
-
     return apply_async
 
 
